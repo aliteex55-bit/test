@@ -4,10 +4,11 @@ main#panes { flex: 1; min-height: 0; display: flex; padding: 8px; }
 .psplit { display: flex; min-width: 0; min-height: 0; }
 .psplit.row { flex-direction: row; }
 .psplit.col { flex-direction: column; }
-.pgroup { display: flex; min-width: 0; min-height: 0; }
+.pgroup { display: flex; min-width: 0; min-height: 0; position: relative; }
 .pane { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.pane[hidden] { display: none; }                            /* a view behind another tab */
 .pane:focus-within { border-color: var(--line-strong); }
-.panebar { display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 10px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--panel-2) 70%, transparent); flex: none; min-height: 30px; }
+.panebar { display: flex; align-items: center; gap: 6px; padding: 3px 6px 3px 3px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--panel-2) 70%, transparent); flex: none; min-height: 30px; }
 .panetitle { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 /* The buttons of a view are quiet until the view is used. */
 .panectl { display: flex; align-items: center; gap: 2px; flex: none; opacity: .55; transition: opacity .15s; }
@@ -20,25 +21,55 @@ main#panes { flex: 1; min-height: 0; display: flex; padding: 8px; }
 body.mode-utforska .followbtn { display: none; }
 .panebody { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 
+/* Asked for: "Flyttbara vyer". The handle a view is dragged by, and the tabs of views that share a place. */
+.panebar .grip { flex: none; padding: 0 5px; height: 22px; border: 0; background: transparent; color: var(--muted); font-size: 16px; line-height: 22px; cursor: grab; touch-action: none; opacity: .6; }
+.pane:hover .grip, .panebar .grip:focus-visible { opacity: 1; color: var(--accent); }
+.pane.intabs .panetitle { display: none; }
+.ptabs { display: flex; flex: 1 1 120px; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.ptab { flex: 0 1 auto; min-width: 3em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 10px; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); cursor: grab; touch-action: none; }
+.ptab:hover { color: var(--text); background: var(--accent-soft); }
+.ptab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.ptab:focus-visible, .panebar .grip:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+/* While a view is dragged: a frame over the place it will land in, and its name at the pointer. */
+.dockhint { position: fixed; z-index: 95; pointer-events: none; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid var(--hl); border-radius: 8px;
+  background: var(--hl-soft); font-size: var(--fs-m); font-weight: 700; letter-spacing: .06em; }
+.dockhint span { padding: 2px 12px; border-radius: 999px; background: var(--hl); color: var(--hl-text); white-space: nowrap; }      /* readable on top of any view */
+.dragghost { position: fixed; z-index: 96; pointer-events: none; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--hl); background: var(--panel-2); color: var(--text); font-size: var(--fs-s); white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, .4); }
+.dockhint[hidden], .dragghost[hidden] { display: none; }
+body.docking { user-select: none; }
+body.docking * { cursor: grabbing !important; }
+/* The view that was moved shows itself for a moment. */
+@keyframes paneflash { from { box-shadow: 0 0 0 3px var(--hl); } to { box-shadow: 0 0 0 3px transparent; } }
+.pane.flash { animation: paneflash 1s ease-out; }
+@media (prefers-reduced-motion: reduce) { .pane.flash { animation: none; } }
+
 /* The joints between the views: drag to resize. */
-.splitter { flex: none; position: relative; z-index: 2; }
+.splitter { flex: none; position: relative; z-index: 2; touch-action: none; }
 .psplit.row > .splitter { width: 8px; cursor: col-resize; }
 .psplit.col > .splitter { height: 8px; cursor: row-resize; }
 .splitter::after { content: ""; position: absolute; inset: 3px; border-radius: 2px; background: transparent; transition: background .12s; }
-.splitter:hover::after, .splitter:focus-visible::after, body.splitting .splitter:active::after { background: var(--accent); }
+.splitter:hover::after, .splitter:focus-visible::after, .splitter.drag::after { background: var(--accent); }
+.splitter:focus-visible { outline: none; }
 body.splitting { user-select: none; }
-body.splitting * { cursor: inherit; }
+/* One square where joints meet: it moves all of them at once (width and height together). */
+.corner { position: absolute; z-index: 6; width: 14px; height: 14px; border-radius: 3px; background: var(--accent); opacity: .5; cursor: nwse-resize; touch-action: none; }
+.corner.br { right: -11px; bottom: -11px; } .corner.bl { left: -11px; bottom: -11px; cursor: nesw-resize; }
+.corner.tr { right: -11px; top: -11px; cursor: nesw-resize; } .corner.tl { left: -11px; top: -11px; }
+.corner:hover, .corner.drag, .corner:focus-visible { opacity: 1; outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
 
 /* A view in full size covers the window; Esc goes back. */
 .pane.maxed { position: fixed !important; inset: 0; z-index: 90; border-radius: 0; }
 body.maxing header { visibility: hidden; }
+body.maxing .corner, body.maxing .splitter { visibility: hidden; }
 
-/* A narrow window: the views under each other, each with a height of its own. */
+/* A narrow window: the views under each other, each with a height of its own. A view can still be
+   moved (its handle, the arrow keys on it) and views can share a place as tabs. */
 @media (max-width: 900px) {
   body { display: block; height: auto; }
   main#panes { display: block; }
   .proot, .psplit, .pgroup { display: block; }
-  .splitter { display: none; }
+  .splitter, .corner { display: none; }
   .pane { margin-bottom: 8px; }
   /* Asked for: "fixa bugg" (the video buggsql.mp4: the Databasen view kept shrinking step by step
      and then jumped back to full height, over and over). Here a view must have a height that does

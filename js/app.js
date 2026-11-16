@@ -58,6 +58,22 @@
     var key = e.thing && (e.thing.kind === 'row' || e.thing.kind === 'set') ? '' : HM.thingKey(e.thing);
     setHash(key);
   });
+  // Asked for: "make sure its proper". An address typed or pasted while the page is already open
+  // (the browser then only changes the part after #, it does not load the page again) is followed
+  // too: #scen-12 opens that scene of the story, anything else is opened in Utforska.
+  window.addEventListener('hashchange', function () {
+    var key = decodeURIComponent(location.hash.slice(1)), sc = /^scen-(\d+)$/.exec(key);
+    if (sc) {
+      var i = HM.clamp(+sc[1] - 1, 0, HM.story.scenes.length - 1);
+      if (HM.mode !== 'berattelse') { HM.story.index = i; HM.setMode('berattelse'); }
+      else if (i !== HM.story.index) HM.story.go(i);
+      return;
+    }
+    var t = HM.thingFromKey(key);
+    if (!t || HM.thingKey(HM.focus) === key) return;
+    if (HM.mode !== 'utforska') { waiting = t; HM.setMode('utforska'); }
+    else HM.setFocus(t, { source: 'app' });
+  });
   // Escape takes the focus away in Utforska (unless a menu or a field is using the key).
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape' || HM.mode !== 'utforska' || !HM.focus) return;
