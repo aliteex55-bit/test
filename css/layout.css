@@ -40,6 +40,11 @@ body.maxing header { visibility: hidden; }
   .proot, .psplit, .pgroup { display: block; }
   .splitter { display: none; }
   .pane { margin-bottom: 8px; }
-  .panebody { max-height: 75vh; }
-  #body-flow, #body-er { height: 75vh; }
+  /* Asked for: "fixa bugg" (the video buggsql.mp4: the Databasen view kept shrinking step by step
+     and then jumped back to full height, over and over). Here a view must have a height that does
+     not depend on what it shows: the drawings fit themselves to their view, so a view that also
+     took its height from its drawing never came to rest. flex: none makes the heights below count
+     (with the flex: 1 of the wide layout they were ignored). A view in full size fills the window. */
+  .pane:not(.maxed) > .panebody { flex: none; max-height: 75vh; }
+  .pane:not(.maxed) > #body-flow, .pane:not(.maxed) > #body-er { height: 75vh; }
 }
