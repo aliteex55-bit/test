@@ -114,7 +114,7 @@
           return;
         }
         h += '<div class="calrow calhead"><span class="calroom">Rum</span><div class="calnights">';
-        for (var d = 1; d <= 31; d++) h += '<span class="calday' + (!overview && d >= q0 && d < q1 ? ' q' : '') + '" style="grid-column:' + d + '">' + d + '</span>';
+        for (var d = 1; d <= 31; d++) h += '<span class="calday' + (!overview && d >= q0 && d < q1 ? ' q' : '') + (d === 1 || d % 5 === 0 ? ' d5' : '') + '" style="grid-column:' + d + '">' + d + '</span>';
         h += '</div><span class="calverdict">' + (overview ? '' : 'Svar på sökningen') + '</span></div>';
         accs.forEach(function (a) {
           h += '<div class="calacc"><b>' + HM.esc(a.name) + '</b> <span>' + '★'.repeat(a.rating) + ' · ' + (a.has_pool ? 'pool' : 'ingen pool') + ' · ' + (a.has_restaurant ? 'restaurang' : 'ingen restaurang') +
@@ -138,6 +138,7 @@
           });
         });
         grid.innerHTML = h;
+        fitRows();
         var n = HM.nights(crit.checkIn, crit.checkOut), asked = [];
         // The whole search in words (in the story the controls are not shown, so this line says it all).
         if (crit.requirePool) asked.push('pool');
@@ -151,6 +152,18 @@
             ' av ' + t.room.filter(function (r) { return accs.some(function (a) { return a.id === r.accommodation_id; }); }).length + ' · ' + n + (n === 1 ? ' natt' : ' nätter') +
             ' · svaret sorteras på ' + (crit.sortByPrice ? 'pris, lägst först' : 'omdöme, högst först') +
             ' <span class="callegend"><i class="lq"></i>sökt period <i class="lfree"></i>ledigt <i class="lclash"></i>krock <i class="lbk"></i>bokning</span>';
+      }
+      // Asked for: the views side by side also in a narrow window. In a narrow calendar the nights
+      // had almost no width left between the room and the answer. There (tight) the answer stands
+      // under the nights and the room is only its number; and when a night is narrower than its
+      // number (sparse) only every fifth day is numbered.
+      function fitRows() {
+        body.classList.toggle('tight', body.clientWidth > 0 && body.clientWidth < 560);
+        var nights = grid.querySelector('.calnights');
+        body.classList.toggle('sparse', !!nights && nights.clientWidth > 0 && nights.clientWidth / 31 < 15);
+        // The text about a booking never takes more than 6/10 of the view's height (it scrolls
+        // inside itself then), so the room it is about is still seen above it in a low view.
+        detail.style.maxHeight = body.clientHeight ? Math.round(body.clientHeight * 0.6) + 'px' : '';
       }
       function say(html) { detail.innerHTML = html ? '<div class="calmsg">' + html + '</div>' : ''; }
       // Asked for: "make sure its proper" (and on the KK2 page: "everything visible at the right
@@ -281,7 +294,8 @@
         reveal();
       });
       // The view got another size (the layout, the window): what is pointed at stays in view.
-      HM.on('panesize', function (e) { if (e.pane === 'cal') reveal(); });
+      HM.on('panesize', function (e) { if (e.pane === 'cal') { fitRows(); reveal(); } });
+      HM.on('paneshow', function (e) { if (e.pane === 'cal') { fitRows(); reveal(); } });
       HM.views.cal.criteria = function () { return JSON.parse(JSON.stringify(crit)); };
       fillControls();
       render();

@@ -18,8 +18,10 @@
 .codesel { font-size: var(--fs-s); margin: 0 0 6px; padding: 4px 10px; border-left: 4px solid var(--hl); background: var(--hl-soft); border-radius: 4px; }
 .codesel span { color: var(--muted); margin-left: 6px; }
 body.mode-berattelse .codesel { display: none; }                    /* in the show the code gets the room */
-.codetabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; }
-.codetab { padding: 2px 8px; font-size: var(--fs-xs); font-family: var(--font-mono); }
+/* The file tabs are one line that scrolls sideways (js/code.js brings the file shown into it). */
+.codetabs { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 4px; margin: 0 0 6px; }
+.codetabs::-webkit-scrollbar { display: none; }
+.codetab { flex: none; padding: 2px 8px; font-size: var(--fs-xs); font-family: var(--font-mono); }
 .codetab.has::after { content: " ●"; color: var(--hl); }
 .codetab[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
 .fullcode tr { cursor: pointer; }
@@ -56,8 +58,14 @@ body.mode-berattelse #body-code { scrollbar-gutter: stable; }
 #body-flow .node.multi text { font-weight: 700; }
 
 /* ------------------------------------------------------------------ the database */
-.morelist { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 0 0 8px; cursor: default; }
+/* The extra parts of the database view: a line of buttons of its own under the view's bar, outside
+   the drawing (js/er.js), so a lit one is seen wherever the drawing is zoomed and moved to. */
+.morelist { flex: none; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 5px 10px; border-bottom: 1px solid var(--line); cursor: default; }
 .morelabel { font-size: var(--fs-xs); color: var(--muted); margin-right: 2px; }
+/* In a small database view they are one line that scrolls sideways. */
+.morelist.tight { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.morelist.tight::-webkit-scrollbar { display: none; }
+.morelist.tight > * { flex: none; }
 .more { padding: 1px 8px; font-size: var(--fs-xs); }
 .more.sel { background: var(--hl); border-color: var(--hl); color: var(--hl-text); font-weight: 700; }
 .more.multi { background: var(--hl-soft); border-color: var(--hl); }
@@ -166,9 +174,20 @@ body.mode-berattelse .calbar, body.mode-berattelse .calacts { display: none; }
 .calbk.mark { box-shadow: 0 0 0 2px var(--hl); }
 .calbk.mark-new { background: var(--ok); border-color: var(--ok); color: #04170c; font-weight: 700; }
 .caldetail:empty { display: none; }
+/* A narrow calendar (js/calendar.js, fitRows): the answer under the nights, the room as its number
+   only, no legend; and with narrow nights only every fifth day numbered. */
+#body-cal.tight .calrow { grid-template-columns: 46px minmax(0, 1fr); row-gap: 0; }
+#body-cal.tight .calrow .calverdict { grid-column: 1 / -1; padding-left: 54px; font-size: var(--fs-xs); }
+#body-cal.tight .calhead .calverdict, #body-cal.tight .calroom small, #body-cal.tight .callegend { display: none; }
+#body-cal.tight .calroom { padding: 1px 4px; }
+#body-cal.tight .calbar { gap: 3px 8px; font-size: var(--fs-xs); }
+#body-cal.tight .calbar input, #body-cal.tight .calbar select { padding: 1px 4px; font-size: var(--fs-xs); }
+#body-cal.tight .calbar input[type="number"] { width: 48px; }
+#body-cal.sparse .calday { display: flex; justify-content: center; overflow: visible; white-space: nowrap; }
+#body-cal.sparse .calday:not(.d5) { visibility: hidden; }
 /* The text about the chosen booking or room stays at the bottom of the view while the rooms scroll
    (js/calendar.js, reveal): it is what explains the comparison, so it must not be out of view. */
-.caldetail { position: sticky; bottom: 0; z-index: 3; background: var(--panel); }
+.caldetail { position: sticky; bottom: 0; z-index: 3; background: var(--panel); overflow-y: auto; scrollbar-width: thin; }
 .calmsg { margin-top: 8px; padding: 8px 12px; border-left: 4px solid var(--hl); background: var(--hl-soft); border-radius: 4px; font-size: var(--fs-m); line-height: 1.45; }
 .calacts { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-left: 8px; }
 .calacts input { width: 56px; }

@@ -102,7 +102,7 @@
       // The largest size at which the whole card fits, in the arrangement that gives the biggest text.
       // The size sits on the card itself, so text put in the view later has the normal size.
       function zoomNow(c) {
-        var lo = 0.4, hi = 4;
+        var lo = 0.2, hi = 4;                               // down to a fifth of the size before the card gets a scrollbar (a low view in a small window)
         for (var k = 0; k < 10; k++) {
           var mid = (lo + hi) / 2;
           c.style.zoom = mid;

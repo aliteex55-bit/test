@@ -24,10 +24,12 @@
     return w;
   }
 
-  // opts: targets() -> the elements to keep in view, pad, minW, minH (in the drawing's own units), max (screen pixels per unit)
+  // opts: targets() -> the elements to keep in view, pad, minW, minH (in the drawing's own units), max (screen pixels per unit),
+  //       core(el) -> the part of a lit element that must be readable in a small view (a box in the drawing's units), or null for all of it
   HM.draw.attach = function (pane, body, svg, opts) {
     var d = { pane: pane, body: body, svg: svg, on: HM.store.get('folj-' + pane, true) !== false, anim: 0, glide: 0 };
     var pad = opts.pad || 60, minW = opts.minW || 400, minH = opts.minH || 280, maxScale = opts.max || 1.6;
+    var READ = 0.9, TIGHT = 14;        // a small view: at least READ px per unit, with TIGHT units of room around
     var vb = svg.viewBox.baseVal;
 
     var btn = document.createElement('button');
@@ -67,8 +69,14 @@
       var els = (opts.targets() || []).filter(function (e) { return e.getClientRects().length; });
       if (!els.length) return null;
       var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-      els.forEach(function (g) { var b = g.getBBox(); x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height); });
-      return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: Math.max(x1 - x0 + 2 * pad, minW), h: Math.max(y1 - y0 + 2 * pad, minH) };
+      var k0 = 1e9, l0 = 1e9, k1 = -1e9, l1 = -1e9;                 // the same for the cores
+      els.forEach(function (g) {
+        var b = g.getBBox(), c = (opts.core && opts.core(g)) || b;
+        x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height);
+        k0 = Math.min(k0, c.x); l0 = Math.min(l0, c.y); k1 = Math.max(k1, c.x + c.width); l1 = Math.max(l1, c.y + c.height);
+      });
+      return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: Math.max(x1 - x0 + 2 * pad, minW), h: Math.max(y1 - y0 + 2 * pad, minH),
+        core: { x: k0, y: l0, w: k1 - k0, h: l1 - l0 } };
     }
 
     // 100 % = the whole drawing. The middle of what is seen stays in the middle.
@@ -84,8 +92,23 @@
       if (!HM.layout.isShown(pane) || !body.clientWidth) return;
       if (!following()) { d.reveal(); return; }
       var g = geo(), sb = scrollbarSize(), t = target(), own = HM.layout.zoom(pane);
-      var s1 = (t ? Math.max(g.fit, Math.min((g.w - sb) / t.w, (g.h - sb) / t.h, maxScale)) : g.fit) * own;
+      var sc = t ? Math.min((g.w - sb) / t.w, (g.h - sb) / t.h, maxScale) : 0;
+      // Asked for: the views side by side also in a narrow window. In a small view the usual room
+      // around what is lit would make its text too small to read. There the room shrinks, down to
+      // a thin edge, until the text has READ px per unit (never closer than that).
+      // What must be readable is the core of what is lit (a column's type, name and key; a whole
+      // box of the flow chart). It is put at the left of the view, so the rest of what is lit
+      // follows it as far as the view reaches.
       var c1 = t ? { x: t.cx, y: t.cy } : { x: vb.x + vb.width / 2, y: vb.y + vb.height / 2 };
+      if (t && sc < READ) {
+        var tight = Math.min((g.w - sb) / (t.core.w + 2 * TIGHT), (g.h - sb) / (t.core.h + 2 * TIGHT), READ);
+        if (tight > sc) {
+          sc = tight;
+          var vw = (g.w - sb) / sc, vh = (g.h - sb) / sc;      // the view, in the drawing's units
+          c1 = { x: t.w <= vw ? t.cx : t.core.x - TIGHT + vw / 2, y: t.h <= vh ? t.cy : t.core.y + t.core.h / 2 };
+        }
+      }
+      var s1 = (t ? Math.max(g.fit, sc) : g.fit) * own;
       var from = now();
       stop();
       if (!animate || document.hidden || HM.reduced()) { put(s1, c1); return; }

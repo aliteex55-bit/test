@@ -63,9 +63,15 @@ body.splitting { user-select: none; }
 body.maxing header { visibility: hidden; }
 body.maxing .corner, body.maxing .splitter { visibility: hidden; }
 
-/* A narrow window: the views under each other, each with a height of its own. A view can still be
-   moved (its handle, the arrow keys on it) and views can share a place as tabs. */
-@media (max-width: 900px) {
+/* A view that is narrow keeps its name readable: the zoom buttons step aside (js/layout.js). */
+.pane.slim .panectl [data-act="zoomout"], .pane.slim .panectl [data-act="zoomin"], .pane.slim .panectl [data-act="zoomreset"], .pane.slim .zoomval { display: none; }
+.pane.slim .panetitle { letter-spacing: .08em; }
+
+/* Asked for: the views side by side also in a narrow window. Only a really narrow window (a phone)
+   has the views under each other, each with a height of its own. A view can still be moved there
+   (its handle, the arrow keys on it) and views can share a place as tabs. The same limit is in
+   js/layout.js (STACK). */
+@media (max-width: 700px) {
   body { display: block; height: auto; }
   main#panes { display: block; }
   .proot, .psplit, .pgroup { display: block; }

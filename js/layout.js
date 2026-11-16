@@ -23,6 +23,14 @@
   var MODES = ['utforska', 'berattelse'];
   var L = HM.layout = { panes: [], textScale: 1 };
   var hub, store, titles = {}, zoomers = {}, zooms = {}, trees = {}, sizes = {}, shown = {}, splitRefs = [], scrollMem = {};
+  // Asked for: the views side by side also in a narrow window ("Ja, gör det"). The views lie under
+  // each other only in a window of STACK px or narrower (a phone). In a window narrower than NARROW
+  // px the arrangement that nobody has changed is the compact one (the ready layout "Smalt fönster"),
+  // in a wider window it is the starting layout. own says, per mode, whether the arrangement is the
+  // user's own (moved, resized or chosen), which is then kept whatever the window's width.
+  var STACK = 700, NARROW = 1000, own = {};
+  L.stacked = function () { return !!(window.matchMedia && matchMedia('(max-width: ' + STACK + 'px)').matches); };
+  function narrow() { return window.innerWidth < NARROW; }
 
   // ------------------------------------------------------------------ the arrangement: a tree
   // { t: 's', d: 'row' | 'col', c: [nodes], w: [weights] } splits its place (row: side by side,
@@ -33,6 +41,7 @@
   function S(d, c, w) { c = c.map(function (x) { return typeof x === 'string' ? G(x) : x; }); return { t: 's', d: d, c: c, w: w || c.map(function () { return 1; }) }; }
   var PRESETS = {
     start: { name: 'Startlayout', make: function () { return S('col', ['panel', S('row', ['er', 'flow', 'cal'], [30, 36, 34]), S('row', ['code', 'sql'], [60, 40])], [20, 42, 38]); } },
+    smalt: { name: 'Smalt fönster', make: function () { return S('col', ['panel', S('row', ['er', 'flow', 'sql'], [34, 30, 36]), S('row', ['cal', 'code'], [56, 44])], [20, 36, 44]); } },
     '3x2': { name: '3 uppe, 3 nere', make: function () { return S('col', [S('row', ['er', 'flow', 'cal']), S('row', ['code', 'sql', 'panel'])]); } },
     '2x3': { name: '2, 2 och 2', make: function () { return S('col', [S('row', ['panel', 'er']), S('row', ['flow', 'cal']), S('row', ['code', 'sql'])]); } },
     sex: { name: '6 sida vid sida', make: function () { return S('row', ['panel', 'er', 'flow', 'cal', 'code', 'sql']); } },
@@ -41,6 +50,19 @@
     flikar: { name: 'Flikar', make: function () { return S('col', ['panel', S('row', [T('flow', 'er'), T('code', 'sql'), 'cal'], [34, 36, 30])], [22, 78]); } },
     staplat: { name: 'Allt staplat', make: function () { return S('col', ['panel', 'er', 'flow', 'cal', 'code', 'sql']); } }
   };
+  function standard() { return (narrow() ? PRESETS.smalt : PRESETS.start).make(); }
+  // The standard arrangement follows the window: when the window has become narrower or wider
+  // than NARROW px, a mode whose arrangement nobody has changed gets the other standard one.
+  // Says whether the arrangement shown now was changed. It is asked when the window is resized
+  // and every time the arrangement is drawn (a page that is not being drawn gets no resize event).
+  var wasNarrow = null;
+  function followWidth() {
+    var n = narrow(), changed = false;
+    if (wasNarrow === null || n === wasNarrow) { wasNarrow = n; return false; }
+    wasNarrow = n;
+    MODES.forEach(function (m) { if (!own[m]) { trees[m] = standard(); if (m === HM.mode) changed = true; } });
+    return changed;
+  }
   function panesIn(n, out) { out = out || []; if (!n) return out; if (n.t === 'g') n.p.forEach(function (p) { out.push(p); }); else n.c.forEach(function (c) { panesIn(c, out); }); return out; }
   // A saved arrangement is used only if it still makes sense: known views, each at most once, a
   // shown view in every group, weights above zero.
@@ -90,7 +112,13 @@
   }
   function tree() { return trees[HM.mode]; }
   function setTree(t) { trees[HM.mode] = t; }
-  function save() { HM.store.set('layout', { v: 2, trees: trees, zooms: zooms, text: L.textScale }); }
+  // Only an arrangement of the user's own is saved; the standard one is saved as "none", so it can
+  // follow the window's width the next time too.
+  function save() {
+    var keep = {};
+    MODES.forEach(function (m) { keep[m] = own[m] ? trees[m] : null; });
+    HM.store.set('layout', { v: 3, trees: keep, zooms: zooms, text: L.textScale });
+  }
 
   // ------------------------------------------------------------------ drawing the arrangement
   function build(n) {
@@ -143,12 +171,16 @@
     });
     return el;
   }
+  // A view that is narrow keeps its name readable: its zoom buttons step aside (Ctrl + wheel still zooms).
+  function slim(p) { var w = L.el(p).offsetWidth; if (w > 0) L.el(p).classList.toggle('slim', w < 340); }
   // Where each view was scrolled to. A view that is not drawn forgets it, so it is kept here while
   // the view waits behind another tab or outside the arrangement.
   function scrollers(p) { return [L.body(p)].concat(Array.prototype.slice.call(L.el(p).querySelectorAll('[data-scroll]'))); }
   function drawn(p) { return L.el(p).getClientRects().length > 0; }
   L.apply = function (reason) {
+    followWidth();
     if (!tree()) setTree(G(L.panes[0]));
+    if (reason === 'tab' || reason === 'show' || reason === 'swap' || reason === 'dock' || reason === 'preset') own[HM.mode] = true;
     L.panes.forEach(function (p) { if (drawn(p)) scrollMem[p] = scrollers(p).map(function (b) { return [b.scrollTop, b.scrollLeft]; }); });
     Array.prototype.slice.call(hub.querySelectorAll('.ptabs')).forEach(function (t) { t.parentNode.removeChild(t); });
     L.panes.forEach(function (p) { var el = L.el(p); el.classList.remove('intabs'); el.hidden = false; store.appendChild(el); });
@@ -175,6 +207,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('.viewtoggle'), function (b) { b.setAttribute('aria-pressed', String(L.inLayout(b.getAttribute('data-pane')))); });
     var mx = maxed();
     if (mx && !isActive(mx)) setMaxed(null);                 // the view in full size is no longer the one shown
+    L.panes.forEach(slim);
     L.panes.forEach(L.applyZoom);
     save();
     HM.emit('layout', { reason: reason || '' });
@@ -379,13 +412,16 @@
         '<button type="button" data-act="zoomreset" title="Tillbaka till 100 %" aria-label="Återställ zoomen för ' + name + '">⟲</button>' +
         '<button type="button" data-act="full" aria-pressed="false" title="Vyn i helskärm (Esc avslutar)" aria-label="' + name + ' i helskärm">⛶</button>' +
         '<button type="button" data-act="hide" title="Dölj vyn" aria-label="Dölj ' + name + '">×</button></span>';
-      L.el(p.id).insertBefore(bar, L.body(p.id));
+      L.el(p.id).insertBefore(bar, L.el(p.id).firstChild);      // first in the view, above anything a view has put over its body
     });
     // What was saved in this browser, if it still makes sense.
-    var saved = HM.store.get('layout', null);
+    var saved = HM.store.get('layout', null), startShape = JSON.stringify(PRESETS.start.make());
     MODES.forEach(function (m) {
-      var t = saved && (saved.v === 1 || saved.v === 2) && saved.trees ? withTabs(saved.trees[m]) : null;
-      trees[m] = valid(t) ? t : PRESETS.start.make();
+      var t = saved && (saved.v === 1 || saved.v === 2 || saved.v === 3) && saved.trees ? withTabs(saved.trees[m]) : null;
+      // An arrangement saved by an earlier version that is exactly the starting layout was never
+      // changed by anyone: it counts as the standard one, which now follows the window's width.
+      own[m] = valid(t) && !(saved.v < 3 && JSON.stringify(t) === startShape);
+      trees[m] = own[m] ? t : standard();
     });
     L.panes.forEach(function (p) { zooms[p] = saved && saved.zooms && typeof saved.zooms[p] === 'number' && saved.zooms[p] >= 0.1 && saved.zooms[p] <= 8 ? saved.zooms[p] : 1; });
     L.textScale = saved && TEXTS.indexOf(saved.text) >= 0 ? saved.text : 1;
@@ -397,7 +433,7 @@
     cfg.panes.forEach(function (p) { h += '<button type="button" class="viewtoggle" data-pane="' + p.id + '" aria-pressed="true">' + HM.esc(p.title) + '</button>'; });
     h += '</div><p><b>Flytta en vy:</b> dra den i handtaget ⠿ till en annan vy. Mot en kant delas platsen, i mitten byter de två plats, och på den andra vyns namnlist blir den en flik där.</p>' +
       '<p><b>Ändra storlek:</b> dra i skarvarna mellan vyerna, eller i fyrkanten där skarvar möts. Varje vy har egen zoom (− och +) och kan visas i helskärm (⛶).</p>' +
-      '<p>Berättelsen och Utforska har var sin layout, och valet sparas i webbläsaren.</p>' +
+      '<p>Berättelsen och Utforska har var sin layout, och valet sparas i webbläsaren. I ett smalt fönster börjar sidan i layouten Smalt fönster, i ett brett i Startlayout.</p>' +
       '<button type="button" class="layreset" data-preset="aterstall">Återställ allt</button>';
     pop.innerHTML = h;
     var menu = document.getElementById('laymenu');
@@ -406,7 +442,7 @@
       if (!b) return;
       var preset = b.getAttribute('data-preset'), pane = b.getAttribute('data-pane');
       if (preset === 'aterstall') {
-        MODES.forEach(function (m) { trees[m] = PRESETS.start.make(); });
+        MODES.forEach(function (m) { own[m] = false; trees[m] = standard(); });
         L.panes.forEach(function (p) { zooms[p] = 1; });
         setMaxed(null);
         setText(1);
@@ -519,6 +555,7 @@
         document.removeEventListener('pointercancel', up);
         el.classList.remove('drag');
         document.body.classList.remove('splitting');
+        own[HM.mode] = true;
         save();
         buildCorners();
       }
@@ -540,9 +577,11 @@
       e.preventDefault();
       e.stopPropagation();
       d[0].forEach(function (x) { splitKey(x, d[1]); });
+      own[HM.mode] = true;
       save();
       if (s) buildCorners();                                 // the squares follow the joint (a square in use stays where the focus is)
     });
+    addEventListener('resize', function () { if (followWidth()) L.apply('width'); });
     addEventListener('load', buildCorners);
     addEventListener('resize', buildCorners);
 
@@ -638,6 +677,7 @@
     if (window.ResizeObserver) L.panes.forEach(function (p) {
       new ResizeObserver(function () {
         var b = L.body(p), now = b.clientWidth + 'x' + b.clientHeight;
+        slim(p);
         if (now === sizes[p] || !L.isShown(p) || !b.clientWidth) return;
         sizes[p] = now;
         HM.emit('panesize', { pane: p });

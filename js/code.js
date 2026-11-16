@@ -10,6 +10,7 @@
   var HM = window.HM, D = HM.data;
   var EMIN = 0.02, EMAX = 1.15;        // the smallest and largest text size the fit may choose (1 = normal size)
   var READ = 0.5;                      // under this size the text of lit lines far apart can no longer be read
+  var WIDE = 0.62;                     // long lines never make the text smaller than this: they run out on the right instead
 
   HM.views.code = {
     mount: function (body) {
@@ -50,6 +51,12 @@
           b.setAttribute('aria-pressed', String(f === file));
           b.classList.toggle('has', !!(L[f] && L[f].length));
         });
+        // The tab of the file shown is brought into the line of tabs.
+        var act = tabs.querySelector('[aria-pressed="true"]');
+        if (act && tabs.scrollWidth > tabs.clientWidth) {
+          var kz = body.offsetWidth ? body.getBoundingClientRect().width / body.offsetWidth : 1, tl = tabs.getBoundingClientRect(), ar = act.getBoundingClientRect();
+          if (ar.left < tl.left || ar.right > tl.right) tabs.scrollLeft += (ar.left - tl.left) / kz - 30;
+        }
         var F = HM.focusLinks;
         sel.hidden = !F;
         if (F) sel.innerHTML = '<b>Markerat:</b> ' + HM.esc(F.title) + (F.where ? ' <span>' + HM.esc(F.where) + '</span>' : '');
@@ -108,7 +115,7 @@
       // its max-height, so the fit is measured against that.
       function viewH() {
         var mh = parseFloat(getComputedStyle(body).maxHeight);
-        return window.matchMedia && matchMedia('(max-width: 900px)').matches && mh > 0 ? Math.max(body.clientHeight, mh) : body.clientHeight;
+        return HM.layout.stacked() && mh > 0 ? Math.max(body.clientHeight, mh) : body.clientHeight;
       }
       // Where to go: the zoom at which the lit lines (and the current scene's line above them) fit,
       // and the row to put in the middle. Too many lines even at the smallest size: the first one on top.
@@ -123,7 +130,12 @@
         w = w / z0 + 16;
         var vh = viewH(), availH = vh * k - 24, availW = fc.getBoundingClientRect().width - 6;
         if (!(blockH > 0) || availH <= 0 || availW <= 0) return null;
-        var fit = Math.min(availH / blockH, w > 16 ? availW / w : Infinity), eff = HM.clamp(fit * k, EMIN, EMAX);
+        var fitH = availH / blockH, fitW = w > 16 ? availW / w : Infinity, fit = Math.min(fitH, fitW);
+        // Asked for: the views side by side also in a narrow window. In a narrow code view long
+        // lines made all the text tiny. Now the lines may run out of the view on the right (the
+        // code scrolls sideways) so that the text keeps a size that can be read.
+        if (fit * k < WIDE) fit = Math.min(fitH, Math.max(fitW, WIDE / k));
+        var eff = HM.clamp(fit * k, EMIN, EMAX);
         var z = eff / k * own;
         var c = blockH * z <= availH + 0.5 ? rowAt(R, (top + bottom) / 2) : Array.prototype.indexOf.call(R, topEl) + (vh * k / 2 - 12) / (rowH * z);
         return { z: z, c: c, eff: eff };
