@@ -1,0 +1,45 @@
+/* The views' frame: where the views sit and how they share the room (js/layout.js). */
+main#panes { flex: 1; min-height: 0; display: flex; padding: 8px; }
+.proot { flex: 1; min-width: 0; min-height: 0; display: flex; }
+.psplit { display: flex; min-width: 0; min-height: 0; }
+.psplit.row { flex-direction: row; }
+.psplit.col { flex-direction: column; }
+.pgroup { display: flex; min-width: 0; min-height: 0; }
+.pane { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.pane:focus-within { border-color: var(--line-strong); }
+.panebar { display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 10px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--panel-2) 70%, transparent); flex: none; min-height: 30px; }
+.panetitle { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+/* The buttons of a view are quiet until the view is used. */
+.panectl { display: flex; align-items: center; gap: 2px; flex: none; opacity: .55; transition: opacity .15s; }
+.pane:hover .panectl, .pane:focus-within .panectl { opacity: 1; }
+.panectl button { padding: 0 7px; min-width: 24px; height: 22px; border-color: transparent; background: transparent; font-size: 14px; }
+.panectl button:hover { border-color: var(--line-strong); }
+.panectl .zoomval { font-size: 11px; color: var(--muted); min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.panectl .followbtn { font-size: 12px; padding: 0 8px; }
+.panectl .followbtn[aria-pressed="true"] { color: var(--hl); border-color: transparent; background: transparent; font-weight: 700; }
+body.mode-utforska .followbtn { display: none; }
+.panebody { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+
+/* The joints between the views: drag to resize. */
+.splitter { flex: none; position: relative; z-index: 2; }
+.psplit.row > .splitter { width: 8px; cursor: col-resize; }
+.psplit.col > .splitter { height: 8px; cursor: row-resize; }
+.splitter::after { content: ""; position: absolute; inset: 3px; border-radius: 2px; background: transparent; transition: background .12s; }
+.splitter:hover::after, .splitter:focus-visible::after, body.splitting .splitter:active::after { background: var(--accent); }
+body.splitting { user-select: none; }
+body.splitting * { cursor: inherit; }
+
+/* A view in full size covers the window; Esc goes back. */
+.pane.maxed { position: fixed !important; inset: 0; z-index: 90; border-radius: 0; }
+body.maxing header { visibility: hidden; }
+
+/* A narrow window: the views under each other, each with a height of its own. */
+@media (max-width: 900px) {
+  body { display: block; height: auto; }
+  main#panes { display: block; }
+  .proot, .psplit, .pgroup { display: block; }
+  .splitter { display: none; }
+  .pane { margin-bottom: 8px; }
+  .panebody { max-height: 75vh; }
+  #body-flow, #body-er { height: 75vh; }
+}

@@ -1,0 +1,84 @@
+/* Asked for: "make new improved design based on this" (the KK2 page). The same family: a dark
+   instrument panel with cyan lines and views with bars. Improved where the student corrected the
+   old one: text large enough to read, calm surfaces (no scan lines or noise over text), one compact
+   row at the top, and one colour meaning one thing in every view:
+     amber  = what is in focus now, and what belongs to it
+     cyan   = things you can click, and the searched period
+     green  = free / it went well
+     red    = a clash / the database or the program said no
+     purple = kept for the beat when the song comes */
+:root {
+  --bg: #050a13; --bg-2: #0a1424; --panel: #0c1727; --panel-2: #13233b; --line: rgba(120, 215, 255, .17); --line-strong: rgba(120, 215, 255, .42);
+  --text: #e8f5ff; --muted: #93abc4; --accent: #62e6ff; --accent-soft: rgba(98, 230, 255, .13);
+  --hl: #ffd166; --hl-soft: rgba(255, 209, 102, .17); --hl-text: #1c1400; --rel: #8fb4ff;
+  --ok: #62e6a0; --ok-soft: rgba(98, 230, 160, .18); --err: #ff7384; --err-soft: rgba(255, 115, 132, .2); --warn: #ffb454;
+  --mark: #c79bea; --mark-soft: rgba(199, 155, 234, .18); --code-bg: #07101d;
+  --c-kw: #7fb0ff; --c-str: #f0a37f; --c-com: #7f9a8a; --c-num: #6fd6c4; --c-type: #6fc3df; --c-par: #ff9fb5; --c-sql: #d7b8ff;
+  --font-ui: "Bahnschrift", "Segoe UI", system-ui, Arial, sans-serif; --font-mono: "Cascadia Mono", Consolas, "Courier New", monospace;
+  --fs-xs: 12px; --fs-s: 13.5px; --fs-m: 15px; --fs-l: 18px; --fs-xl: 24px; --radius: 8px; --gap: 8px;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #eef2f7; --bg-2: #e3e9f1; --panel: #ffffff; --panel-2: #f1f5fa; --line: #cdd6e1; --line-strong: #8a9bb0;
+  --text: #14202e; --muted: #55657a; --accent: #0b6fb3; --accent-soft: #dcedf9;
+  --hl: #b77400; --hl-soft: #fff0c2; --hl-text: #ffffff; --rel: #2f5fd0;
+  --ok: #157a45; --ok-soft: #d9f2e3; --err: #c0303f; --err-soft: #fbdfe3; --warn: #a86400;
+  --mark: #7b3fa0; --mark-soft: #f1e6f8; --code-bg: #f7f9fc;
+  --c-kw: #0b55c8; --c-str: #a3320b; --c-com: #5d7a5d; --c-num: #0e7c6b; --c-type: #267f99; --c-par: #b3245a; --c-sql: #6a2fb5;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; display: flex; flex-direction: column; background: var(--bg); color: var(--text); font: var(--fs-m)/1.5 var(--font-ui); letter-spacing: .01em; }
+/* A quiet grid behind everything, the old page's sign, without anything lying over the text. */
+:root:not([data-theme="light"]) body { background: radial-gradient(ellipse 80% 70% at 50% 0%, #0d2136 0%, var(--bg) 70%) fixed; }
+:root:not([data-theme="light"]) body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(rgba(120, 215, 255, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(120, 215, 255, .035) 1px, transparent 1px); background-size: 40px 40px; }
+header, main { position: relative; z-index: 1; }
+
+button, select, input { font: inherit; color: var(--text); }
+button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; line-height: 1.3; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+select, input[type="date"], input[type="number"], input[type="text"] { background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code { font-family: var(--font-mono); font-size: .92em; }
+h2, h3, h4, p { margin: 0; }
+
+/* ------------------------------------------------------------------ the top bar: ONE row
+   Asked for: "make this much more compact so we get more space saved for the rest, keep it at only one row". */
+header { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--line-strong); background: color-mix(in srgb, var(--bg-2) 82%, transparent);
+  flex-wrap: nowrap; white-space: nowrap; min-height: 44px; }
+header h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); flex: none; }
+.modes { display: flex; flex: none; }
+.modes .modebtn { border-radius: 0; padding: 4px 12px; }
+.modes .modebtn:first-child { border-radius: 6px 0 0 6px; }
+.modes .modebtn:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+.modes .modebtn[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.transport { display: flex; align-items: center; gap: 6px; flex: 1 1 0; min-width: 0; }
+.transport button { padding: 3px 8px; flex: none; }
+#storyplay { min-width: 34px; font-size: 16px; }
+.sceneno { flex: none; color: var(--muted); font-size: var(--fs-s); font-variant-numeric: tabular-nums; }
+.scenecap { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-l); font-weight: 600; color: var(--hl); }
+body.mode-utforska .transport > * { visibility: hidden; }          /* the room is kept, so the bar does not jump */
+.textsize { display: flex; align-items: center; gap: 4px; flex: none; }
+.textsize span { color: var(--muted); font-size: var(--fs-s); min-width: 44px; text-align: center; }
+.fullbtn, #theme { flex: none; padding: 4px 9px; }
+
+/* The Layout menu opens under its button, inside the window. */
+.laymenu { position: relative; flex: none; }
+.laymenu > summary { list-style: none; cursor: pointer; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); }
+.laymenu > summary::-webkit-details-marker { display: none; }
+.laymenu[open] > summary { border-color: var(--accent); color: var(--accent); }
+.laypop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; width: min(420px, 92vw); max-height: calc(100vh - 70px); overflow: auto; white-space: normal;
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 12px; box-shadow: 0 12px 40px rgba(0, 0, 0, .45); }
+.laypop h4 { font-size: var(--fs-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 8px 0 6px; }
+.laypop h4:first-child { margin-top: 0; }
+.laypop .presets, .laypop .vyer { display: flex; flex-wrap: wrap; gap: 6px; }
+.laypop p { color: var(--muted); font-size: var(--fs-s); margin: 10px 0; }
+
+@media (max-width: 900px) {
+  header { flex-wrap: wrap; white-space: normal; }
+  .transport { flex-basis: 100%; order: 9; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

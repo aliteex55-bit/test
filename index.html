@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="sv" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holiday Maker – se hur programmet fungerar</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<header>
+  <h1>Holiday Maker</h1>
+  <div class="modes" role="group" aria-label="Läge">
+    <button type="button" class="modebtn" data-mode="utforska" aria-pressed="false" title="Klicka runt själv: en ruta, en tabell, en kodrad eller ett rum">Utforska</button>
+    <button type="button" class="modebtn" data-mode="berattelse" aria-pressed="true" title="Programmet berättas steg för steg, och vyerna följer med">Berättelsen</button>
+  </div>
+  <div class="transport" id="transport" role="group" aria-label="Berättelsen">
+    <button type="button" id="storyprev" title="Föregående scen (←)" aria-label="Föregående scen">⏮</button>
+    <button type="button" id="storyplay" title="Spela eller pausa (mellanslag)" aria-label="Spela" aria-pressed="false">▶</button>
+    <button type="button" id="storynext" title="Nästa scen (→)" aria-label="Nästa scen">⏭</button>
+    <span class="sceneno" id="sceneno">1 / 1</span>
+    <span class="scenecap" id="scenecap" aria-live="polite"></span>
+  </div>
+  <details class="laymenu" id="laymenu"><summary title="Färdiga layouter och vilka vyer som visas">Layout ▾</summary><div class="laypop" id="laypop"></div></details>
+  <div class="textsize" role="group" aria-label="Textstorlek" title="Textstorlek"><button type="button" id="textminus" aria-label="Mindre text">A−</button><span id="textval">100 %</span><button type="button" id="textplus" aria-label="Större text">A+</button></div>
+  <button type="button" class="fullbtn" id="fullbtn" aria-pressed="false" aria-label="Helskärm" title="Hela sidan i helskärm (Esc avslutar)">⛶</button>
+  <button type="button" id="theme" title="Ljust eller mörkt tema" aria-label="Ljust eller mörkt tema">◐</button>
+</header>
+<main id="panes">
+  <section class="pane" data-pane="panel" id="pane-panel" aria-label="Förklaring"><div class="panebody" id="body-panel" aria-live="polite"></div></section>
+  <section class="pane" data-pane="er" id="pane-er" aria-label="Databasen"><div class="panebody" id="body-er"></div></section>
+  <section class="pane" data-pane="flow" id="pane-flow" aria-label="Flöde"><div class="panebody" id="body-flow"></div></section>
+  <section class="pane" data-pane="cal" id="pane-cal" aria-label="December-kalendern"><div class="panebody" id="body-cal"></div></section>
+  <section class="pane" data-pane="code" id="pane-code" aria-label="Koden"><div class="panebody" id="body-code"></div></section>
+  <section class="pane" data-pane="sql" id="pane-sql" aria-label="SQL-konsolen"><div class="panebody" id="body-sql"></div></section>
+</main>
+<script src="js/data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/db.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/flow.js"></script>
+<script src="js/er.js"></script>
+<script src="js/code.js"></script>
+<script src="js/panel.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/sqlconsole.js"></script>
+<script src="js/story.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

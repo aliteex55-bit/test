@@ -1,0 +1,202 @@
+/* What is inside the views. One colour means one thing everywhere (see css/theme.css):
+   amber = in focus now and what belongs to it, cyan = clickable and the searched period,
+   green = free / it went well, red = a clash / a no. */
+
+/* ------------------------------------------------------------------ code (the code view, the explanation, the SQL console) */
+.code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; }
+.code table { border-collapse: collapse; font: 13px/1.5 var(--font-mono); min-width: 100%; }
+.code td { padding: 0 10px; white-space: pre; vertical-align: top; }
+.code td.n { color: var(--muted); text-align: right; user-select: none; width: 1%; padding-right: 8px; border-right: 1px solid var(--line); }
+.t-kw { color: var(--c-kw); } .t-str { color: var(--c-str); } .t-com { color: var(--c-com); font-style: italic; } .t-num { color: var(--c-num); }
+.t-sqlkw { color: var(--c-kw); font-weight: 600; } .t-sql { color: var(--c-sql); } .t-par { color: var(--c-par); font-weight: 600; }
+.code tr.blk td { background: var(--hl-soft); }
+.code tr.blk td.n { box-shadow: inset 4px 0 0 var(--hl); color: var(--hl); font-weight: 700; }
+.code tr.mark td.n { color: var(--accent); font-weight: 700; }
+.code tr.hl td { background: var(--accent-soft); }
+
+#body-code { padding: 8px 10px 24px; }
+.codesel { font-size: var(--fs-s); margin: 0 0 6px; padding: 4px 10px; border-left: 4px solid var(--hl); background: var(--hl-soft); border-radius: 4px; }
+.codesel span { color: var(--muted); margin-left: 6px; }
+body.mode-berattelse .codesel { display: none; }                    /* in the show the code gets the room */
+.codetabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; }
+.codetab { padding: 2px 8px; font-size: var(--fs-xs); font-family: var(--font-mono); }
+.codetab.has::after { content: " ●"; color: var(--hl); }
+.codetab[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+.fullcode tr { cursor: pointer; }
+.fullcode tr:hover td { background: var(--accent-soft); }
+.fullcode tr.blk:hover td { background: var(--hl-soft); }
+/* The scenes' lines stay above the code they are about; the current one is amber. The row never makes the code wider. */
+.fullcode tr.clens td { padding: 3px 10px 0 54px; font: italic 12px var(--font-ui); color: var(--muted); white-space: nowrap; cursor: default; background: transparent !important; }
+.fullcode tr.clens td > div { width: 0; min-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.fullcode tr.clens.now td { color: var(--hl); font-weight: 700; font-size: 13px; }
+/* The fit must not change the view's width when a scrollbar comes or goes. */
+body.mode-berattelse #body-code { scrollbar-gutter: stable; }
+
+/* ------------------------------------------------------------------ the flow chart */
+#body-flow, #body-er { cursor: grab; padding: 8px 10px; }
+#body-flow.panning, #body-er.panning { cursor: grabbing; user-select: none; }
+#body-flow svg, #body-er svg { display: block; height: auto; font: 12px var(--font-ui); max-width: none; }
+#body-flow .ln { stroke: var(--muted); stroke-width: 1.5; }
+#body-flow #arr path { fill: var(--muted); }
+#body-flow .lbl { fill: var(--muted); font-size: 11px; }
+.node { cursor: pointer; }
+.node text { fill: var(--text); pointer-events: none; }
+#body-flow .node rect, #body-flow .node polygon { fill: var(--panel-2); stroke: var(--line-strong); stroke-width: 1.5; transition: fill .15s, stroke .15s; }
+#body-flow .node:hover rect, #body-flow .node:hover polygon { stroke: var(--accent); stroke-width: 2.5; }
+#body-flow .k-pill rect, #body-flow .k-bar rect, #body-flow .k-note rect { fill: var(--panel); }
+#body-flow .k-note rect { stroke-dasharray: 5 4; }
+#body-flow .k-head rect { fill: var(--accent-soft); stroke: var(--accent); }
+#body-flow .k-head text { fill: var(--accent); font-weight: 700; }
+#body-flow .k-diamond polygon { stroke: var(--warn); }
+#body-flow .k-error rect { fill: var(--err-soft); stroke: var(--err); }
+/* Lit: belongs to what is in focus. Chosen: the thing in focus itself. */
+#body-flow .node.multi rect, #body-flow .node.multi polygon { fill: var(--hl-soft); stroke: var(--hl); stroke-width: 3; }
+#body-flow .node.sel rect, #body-flow .node.sel polygon { fill: var(--hl); stroke: var(--hl); stroke-width: 4; }
+#body-flow .node.sel text { fill: var(--hl-text); font-weight: 700; }
+#body-flow .node.multi text { font-weight: 700; }
+
+/* ------------------------------------------------------------------ the database */
+.morelist { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 0 0 8px; cursor: default; }
+.morelabel { font-size: var(--fs-xs); color: var(--muted); margin-right: 2px; }
+.more { padding: 1px 8px; font-size: var(--fs-xs); }
+.more.sel { background: var(--hl); border-color: var(--hl); color: var(--hl-text); font-weight: 700; }
+.more.multi { background: var(--hl-soft); border-color: var(--hl); }
+#body-er .head rect { fill: var(--panel-2); stroke: var(--line-strong); }
+#body-er .head text { font-weight: 700; fill: var(--accent); }
+#body-er .col rect { stroke: var(--line); stroke-width: .5; }
+#body-er .col.odd rect { fill: var(--panel); }
+#body-er .col.even rect { fill: var(--code-bg); }
+#body-er .sep { stroke: var(--line); stroke-width: .5; }
+#body-er .frame { fill: none; stroke: var(--line-strong); stroke-width: 1; pointer-events: none; }
+#body-er .head:hover rect, #body-er .col:hover rect { fill: var(--accent-soft); }
+#body-er .ent.multi .frame { stroke: var(--hl); stroke-width: 3; }
+#body-er .ent.sel .frame { stroke: var(--hl); stroke-width: 5; }
+#body-er .ent.sel .head rect, #body-er .ent.multi .head rect { fill: var(--hl-soft); }
+#body-er .ent.sel .head text, #body-er .ent.multi .head text { fill: var(--hl); }
+#body-er .col.on rect { fill: var(--hl-soft); stroke: var(--hl); stroke-width: 1.5; }
+#body-er .col.on text { font-weight: 700; fill: var(--hl); }
+#body-er .rp, #body-er .rl { stroke: var(--muted); stroke-width: 1; fill: none; }
+#body-er .rc { stroke: var(--muted); fill: var(--panel); }
+#body-er .hit { stroke: transparent; stroke-width: 16; fill: none; }
+#body-er .lb { fill: var(--panel); opacity: .92; }
+#body-er .lt { font-size: 11px; }
+#body-er .rel:hover .rp, #body-er .rel:hover .rl { stroke: var(--accent); stroke-width: 2.5; }
+#body-er .rel.sel .rp, #body-er .rel.sel .rl, #body-er .rel.sel .rc, #body-er .rel.multi .rp, #body-er .rel.multi .rl, #body-er .rel.multi .rc { stroke: var(--hl); stroke-width: 3; }
+#body-er .rel.sel .lt, #body-er .rel.multi .lt { font-weight: 700; fill: var(--hl); }
+
+/* ------------------------------------------------------------------ the explanation */
+.expl h2 { font-size: var(--fs-xl); line-height: 1.2; }
+.dwhere { color: var(--muted); font: var(--fs-s) var(--font-mono); margin-top: 2px; }
+.say { background: var(--hl-soft); border-left: 4px solid var(--hl); padding: 10px 14px; border-radius: 4px; margin: 10px 0 14px; font-size: var(--fs-l); line-height: 1.45; }
+.say b { display: block; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 0 0 8px; }
+.chips .lk { font-size: var(--fs-xs); color: var(--muted); margin-right: 2px; }
+.chip { padding: 1px 8px; font-size: var(--fs-s); }
+.ref { margin: 16px 0 0; }
+.ref h3 { font-size: var(--fs-l); }
+.ref .where { color: var(--muted); font: var(--fs-s) var(--font-mono); }
+.ref .what { margin: 4px 0 8px; }
+.ref td.n { cursor: pointer; }
+.pts { list-style: none; margin: 8px 0 0; padding: 0; }
+.pts li { display: flex; gap: 10px; padding: 4px 8px; border-radius: 4px; cursor: default; }
+.pts li.on, .pts li:hover { background: var(--accent-soft); }
+.pts .ln-no { flex: none; color: var(--accent); font: 600 var(--fs-s) var(--font-mono); min-width: 58px; }
+.expl.empty .what { font-size: var(--fs-l); margin-top: 10px; color: var(--muted); }
+/* The card of the show: its text is sized by the page to fill the view (js/panel.js). */
+.dexp { padding: 6px 10px; }
+.dexp .dnow { color: var(--hl); font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.dexp h2 { font-size: 22px; line-height: 1.2; }
+.dexp .dwhere { font-size: 12px; }
+.dexp .what { font-size: 15px; line-height: 1.45; margin-top: 8px; }
+.dexp .what.lead { font-size: 17px; font-weight: 600; }
+.dexp.two { display: flex; gap: 0 28px; align-items: flex-start; }
+.dexp.two > .dhead { flex: 0 1 38%; min-width: 0; }
+.dexp.two > .dbody { flex: 1 1 0; min-width: 0; }
+.dexp.two > .dbody > :first-child { margin-top: 0; }
+.dexp.cols > .dbody { column-count: 2; column-gap: 28px; }
+.dexp .dbody > * { break-inside: avoid; }
+
+/* ------------------------------------------------------------------ the December calendar */
+#body-cal { padding: 8px 10px 16px; }
+.calbar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: var(--fs-s); margin-bottom: 6px; }
+.calbar label { display: flex; align-items: center; gap: 4px; color: var(--muted); }
+.calbar input[type="number"] { width: 62px; }
+.calbar .chk { color: var(--text); }
+.calreset { margin-left: auto; padding: 2px 8px; }
+.calsum { font-size: var(--fs-m); margin: 0 0 6px; }
+.calsum code { color: var(--err); }
+.callegend { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; margin-left: 8px; }
+.callegend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin: 0 3px 0 8px; vertical-align: -1px; }
+.callegend .lq { background: var(--accent-soft); border: 1px solid var(--accent); } .callegend .lfree { background: var(--ok); }
+.callegend .lclash { background: var(--err); } .callegend .lbk { background: var(--panel-2); border: 1px solid var(--line-strong); }
+.cal { display: grid; gap: 2px; }
+.calacc { font-size: var(--fs-s); margin-top: 6px; color: var(--muted); }
+.calacc b { color: var(--text); font-size: var(--fs-m); margin-right: 6px; }
+.calrow { display: grid; grid-template-columns: 104px minmax(0, 1fr) minmax(120px, 30%); gap: 8px; align-items: center; border-radius: 5px; padding: 1px 2px; }
+.calroom { display: flex; flex-direction: column; align-items: flex-start; padding: 1px 6px; line-height: 1.15; text-align: left; background: transparent; border-color: transparent; }
+.calroom b { font-size: var(--fs-m); }
+.calroom small { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.calhead .calroom, .calhead .calverdict { font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.calnights { display: grid; grid-template-columns: repeat(31, minmax(0, 1fr)); grid-auto-rows: 22px; gap: 1px; position: relative; }
+.calday { grid-row: 1; text-align: center; font-size: 11px; color: var(--muted); line-height: 22px; font-variant-numeric: tabular-nums; }
+.calday.q { color: var(--accent); font-weight: 700; background: var(--accent-soft); border-radius: 3px; }
+.calcell { grid-row: 1; background: var(--code-bg); border-radius: 2px; }
+.calcell.q { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.calrow.free .calcell.q { background: var(--ok); box-shadow: none; }
+.calbk { grid-row: 1; z-index: 1; padding: 0; margin: 2px 1px; border-radius: 4px; font-size: 11px; line-height: 16px; background: var(--panel-2); border: 1px solid var(--line-strong); color: var(--muted); overflow: hidden; }
+.calbk.clash { background: var(--err); border-color: var(--err); color: #1a0508; font-weight: 700; }
+.calbk.picked, .calrow.picked .calroom { outline: 2px solid var(--hl); outline-offset: 1px; }
+.calverdict { font-size: var(--fs-s); color: var(--muted); line-height: 1.25; }
+.calrow.free .calverdict { color: var(--ok); }
+.calrow.clash .calverdict { color: var(--err); }
+.calrow.dim .calnights, .calrow.dim .calroom { opacity: .4; }
+.calbook { padding: 0 8px; margin-left: 4px; font-size: var(--fs-xs); border-color: var(--ok); color: var(--ok); }
+/* Pointed out by the story. */
+.calrow.mark { background: var(--hl-soft); box-shadow: inset 0 0 0 1px var(--hl); }
+.calbk.mark { box-shadow: 0 0 0 2px var(--hl); }
+.calbk.mark-new { background: var(--ok); border-color: var(--ok); color: #04170c; font-weight: 700; }
+.caldetail:empty { display: none; }
+.calmsg { margin-top: 8px; padding: 8px 12px; border-left: 4px solid var(--hl); background: var(--hl-soft); border-radius: 4px; font-size: var(--fs-m); line-height: 1.45; }
+.calacts { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-left: 8px; }
+.calacts input { width: 56px; }
+.calnone { color: var(--muted); padding: 12px 0; }
+
+/* ------------------------------------------------------------------ the SQL console */
+#body-sql { padding: 8px 10px 16px; }
+.sqlhead { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin-bottom: 6px; }
+.sqlhead b { font-size: var(--fs-l); }
+.sqlhead span { color: var(--muted); font-size: var(--fs-s); }
+.sqlsteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sqlstep { border-left: 3px solid var(--line-strong); padding: 2px 0 2px 10px; font-size: var(--fs-s); }
+.sqlstep.tx { color: var(--muted); } .sqlstep.tx b { color: var(--text); font-family: var(--font-mono); }
+.sqlstep.ok { border-color: var(--ok); } .sqlstep.ok b { color: var(--ok); }
+.sqlstep.no { border-color: var(--err); } .sqlstep.no b { color: var(--err); }
+.sqlstep.ret { border-color: var(--hl); font-size: var(--fs-m); }
+.sqlstep.cur { border-color: var(--hl); background: var(--hl-soft); border-radius: 0 6px 6px 0; }
+.sqlstep .from { color: var(--muted); font: 11px var(--font-mono); margin-left: 8px; }
+.sqlstep[data-line], .sqltext tr, .sqlpars tr { cursor: pointer; }
+.sqlwho { color: var(--muted); font: var(--fs-xs) var(--font-mono); margin-bottom: 2px; }
+.sqlpars { border-collapse: collapse; margin: 4px 0; font: 12.5px/1.5 var(--font-mono); }
+.sqlpars td { padding: 0 10px 0 0; white-space: nowrap; }
+.sqlpars tr:hover td { background: var(--accent-soft); }
+.sqlpars .from { color: var(--muted); font-size: 11px; }
+.sqlres table { border-collapse: collapse; font: 12px/1.45 var(--font-mono); margin-top: 2px; }
+.sqlres th { text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line-strong); padding: 0 10px 0 0; white-space: nowrap; }
+.sqlres td { padding: 0 10px 0 0; white-space: nowrap; }
+.sqlres { overflow-x: auto; }
+.sqlcount, .sqlnone { color: var(--ok); font-size: var(--fs-s); }
+.sqlnone { font-weight: 700; }
+.sqlerr { color: var(--err); font-weight: 600; }
+.sqltry { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+.sqltry h3 { font-size: var(--fs-m); }
+.sqltry p { color: var(--muted); font-size: var(--fs-s); margin: 2px 0 6px; }
+.sqltryrow { display: flex; gap: 6px; }
+.sqlcity { flex: 1; min-width: 0; font-family: var(--font-mono); }
+.sqlnote { margin-top: 8px; padding: 8px 12px; border-left: 4px solid var(--ok); background: var(--ok-soft); border-radius: 4px; font-size: var(--fs-s); }
+.sqlnote p { color: var(--text); margin: 0 0 6px; }
+.sqlbad { border-color: var(--err); }
+.sqlbad td { white-space: pre-wrap; word-break: break-all; }
+
+/* Kept for the beat when the song comes: a short bounce. */
+@keyframes hmbop { 0% { transform: none; } 30% { transform: translateY(-3px); } 100% { transform: none; } }
+.bop { animation: hmbop .32s ease-out; }
