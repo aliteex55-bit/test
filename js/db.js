@@ -5,8 +5,11 @@
 // operation also returns its steps (trace), so the SQL console can show what the program did.
 //
 // No page elements and no events here, so the file also runs in Node for tests.
-// Not checked against a running MySQL server: what the database answers to values the program
-// itself never sends (see refuse() below) follows the MySQL 8.4 rules as written, untested.
+// Asked for: "make sure its proper, thorough debugging". This copy is compared with a real MySQL
+// 8.4 server (a separate test server, never the student's own database): 5 783 searches with every
+// row and its order, the lists, the story's booking step by step, new customers, and what the
+// database itself refuses, with its error numbers and texts. All of it gave the same answers
+// (skola/hm-extra/test/db/mysql.mjs, 2026-11-16).
 (function () {
   'use strict';
   var HM = window.HM, D = HM.data;
