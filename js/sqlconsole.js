@@ -94,10 +94,23 @@
       }
 
       HM.on('trace', showRun);
+      // The story points at one step of the operation. Asked for: "map everything correctly", so the
+      // console also shows where in the operation the story is: the step itself and the checks made
+      // on its answer are bright, and everything from the next SQL statement on is dimmed (it has
+      // not happened yet at this point of the story).
       HM.on('tracestep', function (e) {
-        Array.prototype.forEach.call(run.querySelectorAll('.sqlstep.cur'), function (x) { x.classList.remove('cur'); });
+        var steps = Array.prototype.slice.call(run.querySelectorAll('.sqlstep'));
+        steps.forEach(function (x) { x.classList.remove('cur', 'later'); });
         var li = run.querySelector('.sqlstep[data-statement="' + e.statement + '"]');
-        if (li) { li.classList.add('cur'); li.scrollIntoView({ block: 'nearest' }); }
+        if (!li) return;
+        li.classList.add('cur');
+        for (var k = steps.indexOf(li) + 1; k < steps.length; k++) {
+          if (steps[k].classList.contains('sql')) { steps.slice(k).forEach(function (x) { x.classList.add('later'); }); break; }
+        }
+        // Only this view scrolls to the step (scrollIntoView would also move the whole page in a
+        // narrow window, where the views are under each other).
+        var b = body.getBoundingClientRect(), r = li.getBoundingClientRect(), k2 = body.offsetHeight ? b.height / body.offsetHeight : 1;
+        if (r.top < b.top + 4 || r.bottom > b.bottom - 4) body.scrollTop += (r.top - b.top) / k2 - 8;
       });
       HM.on('focus', function (e) {
         var L = e.links;

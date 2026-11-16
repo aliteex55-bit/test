@@ -18,6 +18,14 @@
   var el = {};
 
   function runsOf(scene) { return (scene.do || []).filter(function (a) { return a.run; }).map(function (a) { return a.run; }); }
+  // Asked for: "map everything correctly". A run marked dry is shown (its steps and its answer) but
+  // leaves the data as it was. The scenes about the transaction's first steps use it, so the new
+  // booking comes into the calendar in the scene that sings INSERT and COMMIT, not two scenes before.
+  function dryRun(r) {
+    var before = HM.db.snapshot(), result = HM.db[FN[r.op]](r.args);
+    HM.db.restore(before);
+    return { op: r.op, args: r.args, result: result, dry: true };
+  }
 
   // Brings the data to what it is when scene i starts: the test data plus every changing operation
   // of the scenes before it, without telling the views. Returns what those operations answered.
@@ -26,7 +34,7 @@
     HM.db.reset();
     for (var j = 0; j < i; j++) {
       runsOf(S[j]).forEach(function (r) {
-        if (CHANGES[r.op]) applied.push({ scene: j, op: r.op, args: r.args, result: HM.db[FN[r.op]](r.args) });
+        if (CHANGES[r.op] && !r.dry) applied.push({ scene: j, op: r.op, args: r.args, result: HM.db[FN[r.op]](r.args) });
       });
     }
     return applied;
@@ -39,9 +47,24 @@
       for (var k = runs.length - 1; k >= 0; k--) {
         var r = runs[k];
         if (HM.data.ops[r.op].statements.indexOf(statement) < 0) continue;
+        if (r.dry) return dryRun(r);                                                             // not saved yet: the same steps again
         if (!CHANGES[r.op]) return { op: r.op, args: r.args, result: HM.db[FN[r.op]](r.args) };     // only reads: ask again
         var hit = applied.filter(function (a) { return a.scene === j && a.op === r.op; }).pop();
         return hit ? { op: hit.op, args: hit.args, result: hit.result } : null;
+      }
+    }
+    return null;
+  }
+  // What the calendar showed when the scene before ended: the latest search or overview of the
+  // scenes so far. A scene that sets neither keeps it, whichever scene it is reached from (playing
+  // on, stepping back, or an address like #scen-20); before this the calendar kept whatever the
+  // scene shown last had left in it.
+  function calendarBefore(i) {
+    for (var j = i - 1; j >= 0; j--) {
+      var acts = S[j].do || [];
+      for (var k = acts.length - 1; k >= 0; k--) {
+        if (acts[k].mark && acts[k].mark.overview) return { overview: acts[k].mark.overview };
+        if (acts[k].run && acts[k].run.op === 'search') return { criteria: acts[k].run.args };
       }
     }
     return null;
@@ -75,10 +98,14 @@
     if (active) {
       var applied = rewind(i), sent = false;
       HM.emit('db', { reason: 'story' });
+      HM.emit('calshow', calendarBefore(i));
       HM.emit('calmark', null);                               // the emphasis of the scene before is gone
       (scene.do || []).forEach(function (a) {
-        if (a.run) { HM.run(a.run.op, a.run.args, { keepFocus: true, source: 'story' }); sent = true; }
-        else if (a.step) {
+        if (a.run) {
+          if (a.run.dry) { HM.lastRun = dryRun(a.run); HM.emit('trace', HM.lastRun); }
+          else HM.run(a.run.op, a.run.args, { keepFocus: true, source: 'story' });
+          sent = true;
+        } else if (a.step) {
           if (!sent) {
             var prev = earlierRun(a.step, i, applied);
             if (prev) { HM.lastRun = prev; HM.emit('trace', prev); }

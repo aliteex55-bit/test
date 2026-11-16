@@ -37,8 +37,14 @@
   modeButtons.forEach(function (b) { b.addEventListener('click', function () { HM.setMode(b.getAttribute('data-mode')); }); });
   HM.on('mode', function (e) {
     showMode(e.mode);
-    // Something chosen through the address waits until Utforska is opened.
-    if (e.mode === 'utforska' && waiting) { var t = waiting; waiting = null; HM.setFocus(t, { source: 'app' }); }
+    // Something chosen through the address waits until Utforska is opened. It is put in focus after
+    // everything else has reacted to the change of mode (the story puts the student's own data back
+    // then, which would otherwise empty the SQL console again right after the thing was shown).
+    if (e.mode === 'utforska' && waiting) {
+      var t = waiting;
+      waiting = null;
+      setTimeout(function () { if (HM.mode === 'utforska') HM.setFocus(t, { source: 'app' }); }, 0);
+    }
   });
 
   // ------------------------------------------------------------------ the address (#…)

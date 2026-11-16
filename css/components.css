@@ -123,6 +123,16 @@ body.mode-berattelse #body-code { scrollbar-gutter: stable; }
 .calbar input[type="number"] { width: 62px; }
 .calbar .chk { color: var(--text); }
 .calreset { margin-left: auto; padding: 2px 8px; }
+/* The filters and the sorting are folded away until they are used, so the rooms get the height
+   (the controls used to fill half of a small calendar view). */
+.calmore > summary { cursor: pointer; color: var(--muted); padding: 1px 4px; border-radius: 4px; white-space: nowrap; }
+.calmore > summary:hover { color: var(--text); }
+.calmore > summary b { color: var(--hl); font-weight: 700; }
+.calmore[open] { flex-basis: 100%; }
+.calmorein { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 4px 0 0 14px; }
+/* In the story the search is told in words on the line under the controls (js/calendar.js), and
+   the controls themselves are not shown: the rooms and the bookings are what the scenes point at. */
+body.mode-berattelse .calbar, body.mode-berattelse .calacts { display: none; }
 .calsum { font-size: var(--fs-m); margin: 0 0 6px; }
 .calsum code { color: var(--err); }
 .callegend { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; margin-left: 8px; }
@@ -156,6 +166,9 @@ body.mode-berattelse #body-code { scrollbar-gutter: stable; }
 .calbk.mark { box-shadow: 0 0 0 2px var(--hl); }
 .calbk.mark-new { background: var(--ok); border-color: var(--ok); color: #04170c; font-weight: 700; }
 .caldetail:empty { display: none; }
+/* The text about the chosen booking or room stays at the bottom of the view while the rooms scroll
+   (js/calendar.js, reveal): it is what explains the comparison, so it must not be out of view. */
+.caldetail { position: sticky; bottom: 0; z-index: 3; background: var(--panel); }
 .calmsg { margin-top: 8px; padding: 8px 12px; border-left: 4px solid var(--hl); background: var(--hl-soft); border-radius: 4px; font-size: var(--fs-m); line-height: 1.45; }
 .calacts { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-left: 8px; }
 .calacts input { width: 56px; }
@@ -173,6 +186,8 @@ body.mode-berattelse #body-code { scrollbar-gutter: stable; }
 .sqlstep.no { border-color: var(--err); } .sqlstep.no b { color: var(--err); }
 .sqlstep.ret { border-color: var(--hl); font-size: var(--fs-m); }
 .sqlstep.cur { border-color: var(--hl); background: var(--hl-soft); border-radius: 0 6px 6px 0; }
+/* Steps the story has not come to yet (js/sqlconsole.js, tracestep). */
+.sqlstep.later { opacity: .38; }
 .sqlstep .from { color: var(--muted); font: 11px var(--font-mono); margin-left: 8px; }
 .sqlstep[data-line], .sqltext tr, .sqlpars tr { cursor: pointer; }
 .sqlwho { color: var(--muted); font: var(--fs-xs) var(--font-mono); margin-bottom: 2px; }

@@ -9,10 +9,11 @@
   'use strict';
   var HM = window.HM, D = HM.data;
   var EMIN = 0.02, EMAX = 1.15;        // the smallest and largest text size the fit may choose (1 = normal size)
+  var READ = 0.5;                      // under this size the text of lit lines far apart can no longer be read
 
   HM.views.code = {
     mount: function (body) {
-      var file = D.fileOrder[2], anim = 0, glide = 0, fc = null, tabs, sel;
+      var START = D.fileOrder[2], file = START, anim = 0, glide = 0, fc = null, tabs, sel;      // starts on Repository.cs
       body.innerHTML = '<div class="codesel" hidden></div><div class="codetabs" role="group" aria-label="Filer"></div><div class="codehost"></div>';
       sel = body.querySelector('.codesel');
       tabs = body.querySelector('.codetabs');
@@ -62,7 +63,7 @@
         HM.story.scenes.slice(0, cur + 1).forEach(function (s, i) {
           var L = HM.links(s.focus).lines[file];
           if (!L || !L.length) return;
-          var line = L.reduce(function (m, r) { return Math.min(m, r[0]); }, 1e9);
+          var line = L[0][0];                                 // above the first place the scene names (the one the view shows)
           (at[line] = at[line] || []).push({ text: s.lyric, no: i + 1, now: i === cur });
         });
         Object.keys(at).forEach(function (line) {
@@ -111,21 +112,42 @@
       }
       // Where to go: the zoom at which the lit lines (and the current scene's line above them) fit,
       // and the row to put in the middle. Too many lines even at the smallest size: the first one on top.
-      function target(R) {
-        var L = fc.querySelectorAll('tr.blk');
+      function measure(R, L) {
         if (!L.length) return null;
         var z0 = parseFloat(fc.style.zoom) || 1, k = K(), own = HM.layout.zoom('code');
         var now = fc.querySelector('tr.clens.now'), a = L[0].getBoundingClientRect(), b = L[L.length - 1].getBoundingClientRect(), n = now ? now.getBoundingClientRect() : null;
+        if (n && (n.bottom < a.top - a.height || n.top > b.bottom)) n = null;      // the scene's line stands somewhere else in the file
         var top = Math.min(a.top, n ? n.top : a.top), bottom = Math.max(b.bottom, n ? n.bottom : b.bottom), topEl = n && n.top < a.top ? now : L[0];
         var blockH = (bottom - top) / z0, rowH = a.height / z0, left = fc.getBoundingClientRect().left, w = 0, rg = document.createRange();
         Array.prototype.forEach.call(L, function (tr) { rg.selectNodeContents(tr.lastElementChild); var q = rg.getBoundingClientRect(); if (q.width) w = Math.max(w, q.right - left); });
         w = w / z0 + 16;
         var vh = viewH(), availH = vh * k - 24, availW = fc.getBoundingClientRect().width - 6;
         if (!(blockH > 0) || availH <= 0 || availW <= 0) return null;
-        var fit = Math.min(availH / blockH, w > 16 ? availW / w : Infinity);
-        var z = HM.clamp(fit * k, EMIN, EMAX) / k * own;
+        var fit = Math.min(availH / blockH, w > 16 ? availW / w : Infinity), eff = HM.clamp(fit * k, EMIN, EMAX);
+        var z = eff / k * own;
         var c = blockH * z <= availH + 0.5 ? rowAt(R, (top + bottom) / 2) : Array.prototype.indexOf.call(R, topEl) + (vh * k / 2 - 12) / (rowH * z);
-        return { z: z, c: c };
+        return { z: z, c: c, eff: eff };
+      }
+      // The lit rows of the first place the focus names in this file: its main code.
+      function mainRows(all) {
+        var L = lit()[file];
+        if (!L || !L.length) return [];
+        return all.filter(function (tr) { var no = +tr.getAttribute('data-line'); return no >= L[0][0] && no <= L[0][1]; });
+      }
+      // Asked for: "map everything correctly and make sure its proper". Everything lit is fitted
+      // into the view (a whole method is zoomed out until all of it is seen, as asked for on the KK2
+      // page). But when the lit lines stand far apart (a box with code in several places, the same
+      // condition in two methods), fitting them all made the text a few pixels high. Then the view
+      // fits the first place the focus names, at a size that can be read, and the other places stay
+      // lit further down or up in the file.
+      function target(R) {
+        var all = Array.prototype.slice.call(fc.querySelectorAll('tr.blk'));
+        var t = measure(R, all);
+        if (t && t.eff < READ) {
+          var main = mainRows(all);
+          if (main.length && main.length < all.length) t = measure(R, main) || t;
+        }
+        return t;
       }
       function follow(animate) {
         cancelAnimationFrame(anim);
@@ -164,9 +186,16 @@
 
       // ---------------------------------------------------------------- events
       HM.on('focus', function (e) {
-        var L = e.links ? e.links.lines : {};
-        // The file with the lit lines, unless the file shown has lit lines itself.
-        if (e.links && e.links.file && !(L[file] && L[file].length) && e.links.file !== file) draw(e.links.file);
+        var L = e.links ? e.links.lines : {}, want = e.links && e.links.file;
+        // The file with the lit lines, unless the file shown has lit lines itself. In the story the
+        // scene's own file is always the one shown, so a scene looks the same whichever scene came
+        // before it (it used to keep the file of the scene before when that file had lit lines too).
+        // A scene without code keeps the file of the latest scene before it that has code.
+        if (e.source === 'story' && !want && HM.story) {
+          for (var j = HM.story.index - 1; j >= 0 && !want; j--) want = HM.links(HM.story.scenes[j].focus).file;
+          want = want || START;
+        }
+        if (want && want !== file && (e.source === 'story' || !(L[file] && L[file].length))) draw(want);
         else { paint(); captions(); }
         settle(true, e.source);
       });

@@ -317,7 +317,11 @@
           L.er = HM.uniq(L.er.concat([tab]));
           D.schema[tab].constraints.forEach(function (k) {     // a constraint lights the columns it names
             if (t.line < k.line || t.line > k.to) return;
-            var inside = (k.text.match(/\(([^()]*)\)/g) || []).join(' ');
+            // Asked for: "map everything correctly". A foreign key names two columns, FOREIGN KEY
+            // (room_id) REFERENCES room (id): only the first bracket is a column of this table, the
+            // second belongs to the table it points at (it used to light this table's own id too).
+            var groups = k.text.match(/\(([^()]*)\)/g) || [];
+            var inside = (/FOREIGN KEY/.test(k.text) ? groups.slice(0, 1) : groups).join(' ');
             D.schema[tab].columns.forEach(function (cc) { if (new RegExp('\\b' + cc.name + '\\b').test(inside)) L.cols.push(tab + '.' + cc.name); });
             D.rels.forEach(function (r) { if (r.to === tab && r.line <= t.line && t.line <= r.lineTo) { L.er.push(r.id, r.from); L.cols.push(r.from + '.' + r.refColumn); } });
           });

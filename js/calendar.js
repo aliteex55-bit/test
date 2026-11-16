@@ -20,14 +20,19 @@
         '<label>Incheckning <input type="date" data-c="checkIn" min="' + FIRST + '" max="' + LAST_IN + '"></label>' +
         '<label>Utcheckning <input type="date" data-c="checkOut" min="2026-12-02" max="' + LAST_OUT + '"></label>' +
         '<label>Personer <input type="number" data-c="guests" min="1" max="6" step="1"></label>' +
+        // Asked for: "make sure its proper". The optional filters and the sorting are folded away
+        // until they are used (they open by themselves when one is set), so the rooms get the room.
+        '<details class="calmore"><summary>Filter och sortering</summary><div class="calmorein">' +
         '<label class="chk"><input type="checkbox" data-c="requirePool"> Pool</label>' +
         '<label class="chk"><input type="checkbox" data-c="requireRestaurant"> Restaurang</label>' +
         '<label>Strand, högst m <input type="number" data-c="maxBeach" min="0" step="50" placeholder="alla"></label>' +
         '<label>Centrum, högst m <input type="number" data-c="maxCenter" min="0" step="50" placeholder="alla"></label>' +
         '<label>Sortera <select data-c="sortByPrice"><option value="1">pris, lägst först</option><option value="0">omdöme, högst först</option></select></label>' +
+        '</div></details>' +
         '<button type="button" class="calreset" title="Lägger tillbaka testdatat: de 25 bokningarna">Återställ testdata</button>' +
         '</div><div class="calsum" aria-live="polite"></div><div class="cal"></div><div class="caldetail" aria-live="polite"></div>';
       var bar = body.querySelector('.calbar'), sum = body.querySelector('.calsum'), grid = body.querySelector('.cal'), detail = body.querySelector('.caldetail');
+      var more = bar.querySelector('.calmore');
       function ctl(name) { return bar.querySelector('[data-c="' + name + '"]'); }
       function day(date) { return HM.dayNumber(date) - HM.dayNumber(FIRST) + 1; }          // 1 dec = 1 … 1 jan = 32
       function span(a, b) { return HM.dayText(a).replace(' dec', '') + '–' + HM.dayText(b); }
@@ -51,6 +56,13 @@
         ctl('maxBeach').value = crit.maxBeach === null || crit.maxBeach === undefined ? '' : crit.maxBeach;
         ctl('maxCenter').value = crit.maxCenter === null || crit.maxCenter === undefined ? '' : crit.maxCenter;
         ctl('sortByPrice').value = crit.sortByPrice ? '1' : '0';
+        // How many of the folded-away choices are in use. In the story the fold follows the scene
+        // (open exactly when one is used); otherwise it only opens by itself, never closes.
+        var used = (crit.requirePool ? 1 : 0) + (crit.requireRestaurant ? 1 : 0) + (crit.maxBeach === null || crit.maxBeach === undefined ? 0 : 1) +
+          (crit.maxCenter === null || crit.maxCenter === undefined ? 0 : 1) + (crit.sortByPrice ? 0 : 1);
+        more.querySelector('summary').innerHTML = 'Filter och sortering' + (used ? ' <b>(' + used + (used === 1 ? ' valt' : ' valda') + ')</b>' : '');
+        if (HM.mode === 'berattelse') more.open = used > 0;
+        else if (used) more.open = true;
       }
       // The same limits as the program's own input: December 2026, at least one night, 1–6 guests.
       function readControls() {
@@ -77,7 +89,12 @@
 
       // ---------------------------------------------------------------- the grid
       function verdict(w, room) {
-        if (w.hit) { var n = HM.nights(crit.checkIn, crit.checkOut); return 'ledigt · ' + n + (n === 1 ? ' natt' : ' nätter') + ' × ' + HM.kr(room.price_per_night) + ' = ' + HM.kr(n * room.price_per_night); }
+        if (w.hit) {
+          // The rooms stand in the order of the houses here, so the place each one has in the
+          // search's answer (its ORDER BY: price or rating) is written out: "nr 1 i svaret".
+          var n = HM.nights(crit.checkIn, crit.checkOut), place = hits.map(function (x) { return x.id; }).indexOf(room.id) + 1;
+          return 'ledigt · nr ' + place + ' i svaret · ' + n + (n === 1 ? ' natt' : ' nätter') + ' × ' + HM.kr(room.price_per_night) + ' = ' + HM.kr(n * room.price_per_night);
+        }
         var parts = [];
         w.fails.forEach(function (f) {
           if (f === 'clash') parts.push('krock: bokning ' + w.clashes.join(' och '));
@@ -121,14 +138,35 @@
           });
         });
         grid.innerHTML = h;
-        var n = HM.nights(crit.checkIn, crit.checkOut);
+        var n = HM.nights(crit.checkIn, crit.checkOut), asked = [];
+        // The whole search in words (in the story the controls are not shown, so this line says it all).
+        if (crit.requirePool) asked.push('pool');
+        if (crit.requireRestaurant) asked.push('restaurang');
+        if (crit.maxBeach !== null && crit.maxBeach !== undefined) asked.push('högst ' + crit.maxBeach + ' m till stranden');
+        if (crit.maxCenter !== null && crit.maxCenter !== undefined) asked.push('högst ' + crit.maxCenter + ' m till centrum');
         sum.innerHTML = overview
           ? '<b>' + HM.esc(accs[0].city) + ', december 2026.</b> Varje rad är ett rum, varje ruta en natt. Strecken är bokningarna (numret är bokningens id).'
-          : '<b>' + HM.esc(accs[0].city) + ' ' + span(crit.checkIn, crit.checkOut) + ', ' + crit.guests + (crit.guests === 1 ? ' person' : ' personer') + ':</b> ' + hits.length + (hits.length === 1 ? ' ledigt rum' : ' lediga rum') +
+          : '<b>' + HM.esc(accs[0].city) + ' ' + span(crit.checkIn, crit.checkOut) + ', ' + crit.guests + (crit.guests === 1 ? ' person' : ' personer') + (asked.length ? ', krav: ' + asked.join(', ') : '') + ':</b> ' +
+            hits.length + (hits.length === 1 ? ' ledigt rum' : ' lediga rum') +
             ' av ' + t.room.filter(function (r) { return accs.some(function (a) { return a.id === r.accommodation_id; }); }).length + ' · ' + n + (n === 1 ? ' natt' : ' nätter') +
+            ' · svaret sorteras på ' + (crit.sortByPrice ? 'pris, lägst först' : 'omdöme, högst först') +
             ' <span class="callegend"><i class="lq"></i>sökt period <i class="lfree"></i>ledigt <i class="lclash"></i>krock <i class="lbk"></i>bokning</span>';
       }
       function say(html) { detail.innerHTML = html ? '<div class="calmsg">' + html + '</div>' : ''; }
+      // Asked for: "make sure its proper" (and on the KK2 page: "everything visible at the right
+      // timing and right view"). In the story the calendar follows what is pointed at, like the
+      // other views do: the marked or chosen room is brought into view, above the text that stays
+      // at the bottom of the view. With nothing pointed at, the calendar shows its top.
+      function reveal() {
+        if (HM.mode !== 'berattelse') return;
+        var el = grid.querySelector('.calbk.mark, .calrow.mark') || grid.querySelector('.calbk.picked, .calrow.picked');
+        if (!el) { body.scrollTop = 0; return; }
+        var row = el.closest('.calrow') || el, b = body.getBoundingClientRect(), r = row.getBoundingClientRect();
+        var k = body.offsetHeight ? b.height / body.offsetHeight : 1;                  // the view may be zoomed
+        var bottom = detail.firstChild ? Math.min(b.bottom, detail.getBoundingClientRect().top) : b.bottom;
+        if (r.top >= b.top + 4 && r.bottom <= bottom - 4) return;
+        body.scrollTop += ((r.top + r.bottom) / 2 - (b.top + bottom) / 2) / k;
+      }
 
       // ---------------------------------------------------------------- a booking: the two comparisons
       function compare(b) {
@@ -137,12 +175,14 @@
           ', och check_out ' + HM.dayText(b.check_out) + ' > @checkIn ' + HM.dayText(crit.checkIn) + (s2 ? ' stämmer' : ' stämmer inte') + '. ' +
           (s1 && s2 ? 'Båda stämmer, alltså krockar bokningen med perioden.' : 'Båda måste stämma för en krock, så bokningen krockar inte' + (b.check_out === crit.checkIn ? ': utcheckningsdagen är ledig för nästa gäst.' : '.'));
       }
-      function showBooking(id, quiet) {
+      // plain: only the booking's own facts, without the comparison with the search (the story's
+      // new booking IS the searched period, so "it clashes with the period" would only confuse).
+      function showBooking(id, quiet, plain) {
         var b = HM.db.tables.booking.filter(function (x) { return x.id === id; })[0];
         if (!b) return;
         var r = roomOf(b.room_id), a = accOf(r), n = HM.nights(b.check_in, b.check_out);
         var text = 'Rum ' + r.room_number + ' på ' + a.name + ', ' + span(b.check_in, b.check_out) + ', ' + b.guests + (b.guests === 1 ? ' person' : ' personer') + ', ' + customerName(b.customer_id) + '. ' +
-          n + (n === 1 ? ' natt' : ' nätter') + ' × ' + HM.kr(r.price_per_night) + ' = ' + HM.kr(n * r.price_per_night) + '. ' + (overview ? '' : compare(b));
+          n + (n === 1 ? ' natt' : ' nätter') + ' × ' + HM.kr(r.price_per_night) + ' = ' + HM.kr(n * r.price_per_night) + '. ' + (overview || plain ? '' : compare(b));
         picked = { table: 'booking', id: id };
         detail.innerHTML = '<div class="calmsg"><b>Bokning ' + id + '.</b> ' + HM.esc(text) + '<span class="calacts">' +
           '<label>Personer <input type="number" class="calguests" min="1" max="9" value="' + b.guests + '"></label><button type="button" class="calupd" data-booking="' + id + '">Ändra</button>' +
@@ -201,13 +241,36 @@
         render();
       });
       HM.on('db', function () { fillControls(); render(); });
+      // Asked for: "map everything correctly". The story says what the calendar showed when the scene
+      // before ended ({ criteria } of the latest search, or { overview: city }), so a scene looks the
+      // same whichever scene it is reached from.
+      HM.on('calshow', function (c) {
+        if (!c) return;
+        if (c.overview) { overview = true; crit.city = c.overview; }
+        else { crit = JSON.parse(JSON.stringify(c.criteria)); overview = false; }
+        fillControls();
+        render();
+        reveal();
+      });
+      // The student's own search waits while the story uses the calendar, and is back after it.
+      var mine = null;
+      HM.on('mode', function (e) {
+        if (e.mode === 'berattelse' && e.was !== 'berattelse') mine = JSON.parse(JSON.stringify(crit));
+        else if (e.mode === 'utforska' && mine) {
+          crit = mine; mine = null; overview = false; marks = null; picked = null;
+          say('');
+          fillControls();
+          render();
+        }
+      });
       // Emphasis from the story: { what: 'free' | 'clash' | 'new', rooms, bookings } or { overview: city }; null takes it away.
       HM.on('calmark', function (m) {
         marks = m && m.what ? m : null;
         if (m && m.overview) { overview = true; crit.city = m.overview; fillControls(); say(''); }
-        if (marks && marks.bookings && marks.bookings.length === 1) showBooking(marks.bookings[0], true);
+        if (marks && marks.bookings && marks.bookings.length === 1) showBooking(marks.bookings[0], true, marks.what === 'new');
         else if (m === null) { picked = null; say(''); }
         render();
+        reveal();
       });
       HM.on('focus', function (e) {
         var rows = e.links ? e.links.rows : [];
@@ -215,7 +278,10 @@
         picked = rows[0];
         if (rows[0].table === 'booking') showBooking(rows[0].id, true);
         render();
+        reveal();
       });
+      // The view got another size (the layout, the window): what is pointed at stays in view.
+      HM.on('panesize', function (e) { if (e.pane === 'cal') reveal(); });
       HM.views.cal.criteria = function () { return JSON.parse(JSON.stringify(crit)); };
       fillControls();
       render();
