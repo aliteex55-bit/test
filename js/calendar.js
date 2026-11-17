@@ -158,7 +158,13 @@
       // under the nights and the room is only its number; and when a night is narrower than its
       // number (sparse) only every fifth day is numbered.
       function fitRows() {
-        body.classList.toggle('tight', body.clientWidth > 0 && body.clientWidth < 560);
+        // Asked for: a review of the page for real bugs, found by running it. A calendar about
+        // 566 px wide and almost high enough for all its rooms flickered without end between its
+        // two looks: the narrow look needed no scrollbar, which made the view wide enough for the
+        // wide look, which needed a scrollbar again. So the view's own width decides (with its
+        // scrollbar counted in), which does not change with what the calendar shows.
+        var width = body.offsetWidth;
+        body.classList.toggle('tight', width > 0 && width < 570);
         var nights = grid.querySelector('.calnights');
         body.classList.toggle('sparse', !!nights && nights.clientWidth > 0 && nights.clientWidth / 31 < 15);
         // The text about a booking never takes more than 6/10 of the view's height (it scrolls

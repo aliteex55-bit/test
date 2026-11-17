@@ -145,7 +145,12 @@
     // uses the keys itself has the keyboard.
     document.addEventListener('keydown', function (e) {
       if (!active || e.ctrlKey || e.altKey || e.metaKey) return;
-      if (e.target && e.target.closest && e.target.closest('input, select, textarea, button, a, summary, [tabindex], [contenteditable]')) return;
+      // Asked for: a review of the page for real bugs, found by running it. After one click on a
+      // button (⏭, a mode, a room in the calendar) the arrow keys did nothing, because the clicked
+      // button keeps the keyboard. A plain button has no use for the arrows, so they step the story
+      // from there too. Space is left to the button itself, and an open menu keeps all its keys.
+      var arrow = e.key === 'ArrowRight' || e.key === 'ArrowLeft';
+      if (e.target && e.target.closest && e.target.closest('input, select, textarea, a, summary, details[open], [tabindex], [contenteditable]' + (arrow ? '' : ', button'))) return;
       if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); story.toggle(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); story.next(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); story.prev(); }

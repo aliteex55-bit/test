@@ -80,5 +80,14 @@ body.mode-utforska .transport > * { visibility: hidden; }          /* the room i
 @media (max-width: 900px) {
   header { flex-wrap: wrap; white-space: normal; }
   .transport { flex-basis: 100%; order: 9; }
+  /* Asked for: a review of the page for real bugs, found by running it. In Utforska the row of the
+     story's buttons was an empty band here (its room is kept in the one-row bar, so that bar does
+     not jump). Here the row is taken away, and the views get its height. */
+  body.mode-utforska .transport { display: none; }
 }
+/* Found in the same review: in a window about 720 px wide the sung line of scenes 7 and 34 took
+   two lines, so the top bar grew and every view jumped. Where the views lie side by side the line
+   stays one line (it ends in … when it does not fit; the whole line is in the explanation). The
+   lower limit is the one where the views are put under each other (css/layout.css, STACK in js/layout.js). */
+@media (min-width: 701px) and (max-width: 900px) { .scenecap { white-space: nowrap; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
